@@ -78,7 +78,8 @@ Ok, one module loaded.
 ## Preface
 
 In this assignment you will implement generalized representation for arbitrary expressions.
-It is recommended for tasks to be implemented in order.
+
+> It is recommended for tasks to be implemented in order.
 
 ## Task 1 (3 points)
 
