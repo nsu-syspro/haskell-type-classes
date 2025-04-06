@@ -12,24 +12,28 @@ import Data.Map ((!), Map)
 import qualified Data.Map as M
 import Data.List (nub)
 
-
 task3Tests :: TestTree
 task3Tests = testGroup "Task3"
   [ testProperty "solveSAT" $
-      withMaxSuccess 1000 $
+      withMaxSuccess 1000 $ noShrinking $
         \(Blind input) ->
           let res = satisfy input
               str = strFormula input
           in counterexample ("unexpected result of solveSAT " ++ show str) $
-            classify (not res) "unsatisfiable" $
-              solveSAT str === Just res
+            within (milli 100) $
+              classify (not res) "unsatisfiable" $
+                solveSAT str === Just res
 
   , testProperty "solveSAT (parsing error)" $
-      withMaxSuccess 1000 $
+      withMaxSuccess 1000 $ noShrinking $
         \(Blind (Unparseable str)) ->
           counterexample ("unexpected result of solveSAT " ++ show str) $
-            solveSAT str === Nothing
+            within (milli 100) $
+              solveSAT str === Nothing
   ]
+
+milli :: Int -> Int
+milli n = n * 10 ^ (3 :: Int)
 
 -- Quick verification on samples from task description
 --
