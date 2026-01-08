@@ -310,7 +310,7 @@ Implement instance of `Eval` for `Integer` with `IntOp` operations.
 
 > [!NOTE]
 >
-> Haskell 2011 prohibits type classes with multiple parameters.
+> Haskell 2010 prohibits type classes with multiple parameters.
 > However, this restriction can be lifted with following
 > [pragma](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/multi_param_type_classes.html)
 >
