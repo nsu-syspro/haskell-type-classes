@@ -350,13 +350,14 @@ into single function.
 In fact, this function is already provided in [src/Task2.hs](src/Task2.hs):
 
 ```haskell
-evaluate :: (Eval a op, Parse a, Parse op) => Reify a op -> [(String, a)] -> String -> Maybe a
-evaluate reify m s = case parse s of
-  Just e -> evalExpr m (reify e)
+evaluate :: forall a op. (Eval a op, Parse a, Parse op) => [(String, a)] -> String -> Maybe a
+evaluate m s = case parse s of
+  Just e -> evalExpr m (e :: Expr a op)
   Nothing -> Nothing
 ```
 
-> Check out the explanation below to understand why this generic function is the way it is.
+> Check out the explanation below to understand why this generic function is the way it is
+> and how to use it to implement `evaluateInteger`.
 
 So your job is to only implement the `Integer`-specific version in `evaluateInteger`
 using this predefined function `evaluate`:
@@ -415,26 +416,67 @@ Nothing
 > names for generic type parameters (we might as well have specified it
 > as `e :: Expr foo bar` to the same result).
 >
-> There is no way to reference generic type parameter names from inside of
-> function definition, only in function signature itself.
+> There is, however, a way to reference generic type parameter names from inside of
+> function definition, using
+> [Lexically scoped type variables](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/scoped_type_variables.html#scoped-type-variables)
+> provided by following pragma (enabled by default in `GHC2021` and `GHC2024`):
+>
+> ```haskell
+> {-# LANGUAGE ScopedTypeVariables #-}
+> ```
+>
+> This extension allows us to specify explicit `forall a op.` clause
+> which brings type variables `a` and `op` into scope and thus
+> makes explicit type `Expr a op` work inside of function definition.
+>
+> Unfortunately in order to actually make this function compilable we also need to allow
+> defer [Ambiguous type check](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/ambiguous_types.html)
+> until actual use of this function using following pragma:
+>
+> ```haskell
+> {-# LANGUAGE AllowAmbiguousTypes #-}
+> ```
+>
+> Now if you try to implement `evaluateInteger` like this:
+>
+> ```haskell
+> evaluateInteger :: [(String, Integer)] -> String -> Maybe Integer
+> evaluateInteger = evaluate
+> ```
+>
+> you would get the following error from compiler:
+>
+> ```
+> • Ambiguous type variable ‘op0’ arising from a use of ‘evaluate’
+>   prevents the constraint ‘(Eval Integer op0)’ from being solved.
+>   Probable fix: use a type annotation to specify what ‘op0’ should be.
+>   Potentially matching instance:
+>     instance Eval Integer IntOp
+> ```
 > 
-> So to workaround this problem we pass explicit "conversion" in form of `Reify`
-> function to reconcile generic type of intermediate `e :: Expr foo bar`
-> with concrete type `Expr a op` implied by constraints:
+> This means that compiler could not figure out that type variable `op` should
+> correspond to `IntOp` (indeed there might be many different `Expr Integer _` instances defined).
+> And as described in "Probable fix" compiler suggests to somehow specify that ambiguous type variable.
+>
+> There is a very elegant way of specifying type variable values for expression using
+> [Visible type application](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/type_applications.html#visible-type-application)
+> provided by following pragma and enabled by default in `GHC2021` and `GHC2024`:
 >
 > ```haskell
-> type Reify a op = Expr a op -> Expr a op
+> {-# LANGUAGE TypeApplications #-}
 > ```
 >
-> In reality this is just identity function specialized for concrete pair of `a` and `op`:
+> This extension allows us to specify explicit values for both `a` and `op` type variables:
+> 
+> ```haskell
+> evaluateInteger = evaluate @Integer @IntOp
+> ```
+>
+> Or even just for `op` type variable, since compiler is able to figure out that `a` must be `Integer` anyway:
 >
 > ```haskell
-> reifyInteger :: Reify Integer IntOp
-> reifyInteger = id
+> evaluateInteger = evaluate @_ @IntOp
 > ```
->
-> Although this is kind of ugly, it at least resolves the problem, allowing GHC to infer correct
-> type of intermediate expression `Expr`, which is not present anywhere in signature of `evaluate`.
 
 ## Task 3 (3 points)
 

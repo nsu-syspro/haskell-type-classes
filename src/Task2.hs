@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 -- The above pragma enables all warnings
 
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Task2 where
 
@@ -97,20 +97,11 @@ evaluateInteger = error "TODO: define evaluateInteger"
 -- Returns 'Nothing' in case the expression could not be parsed
 -- or in case appropriate variable value is missing.
 --
--- The 'Reify' function is required to reconcile generic type
--- of intermediate 'Expr' expression with concrete type using 'a' and 'op'.
+-- The 'forall a op.' part is required to define generic type
+-- of intermediate 'Expr' expression that uses scoped type variables 'a' and 'op'.
 --
-evaluate :: (Eval a op, Parse a, Parse op) => Reify a op -> [(String, a)] -> String -> Maybe a
-evaluate reify m s = case parse s of
-  Just e -> evalExpr m (reify e)
+evaluate :: forall a op. (Eval a op, Parse a, Parse op) => [(String, a)] -> String -> Maybe a
+evaluate m s = case parse s of
+  Just e -> evalExpr m (e :: Expr a op)
   Nothing -> Nothing
 
--- * Helpers
-
--- | Helper type for specifying 'Expr' with
--- concrete 'a' and 'op' in generic context
-type Reify a op = Expr a op -> Expr a op
-
--- | Helper for specifying 'Expr' with 'Integer' and 'IntOp' in generic context
-reifyInteger :: Reify Integer IntOp
-reifyInteger = id
